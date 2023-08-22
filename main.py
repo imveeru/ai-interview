@@ -3,7 +3,7 @@ import streamlit as st
 st.set_page_config(
     page_icon="🧑‍💼",
     page_title="AI Interviewer",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 hide_st_style ='''
@@ -62,4 +62,26 @@ parameters = {
 }
 model = TextGenerationModel.from_pretrained("text-bison@001")
 
+from langchain.chat_models import ChatVertexAI
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationSummaryBufferMemory
+
 ##################### User Interface #####################
+
+llm=ChatVertexAI()
+memory=ConversationSummaryBufferMemory(
+    llm=llm,
+    max_token_limit=100
+)
+conversation=ConversationChain(
+    llm=llm,
+    memory=memory,
+    verbose=True
+)
+
+res=conversation.predict(input="Hello, I'm Jack!")
+st.write(res)
+
+mem=memory.load_memory_variables({})
+st.divider()
+st.write(mem)
