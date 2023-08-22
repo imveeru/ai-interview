@@ -54,3 +54,12 @@ aiplatform.init(
 project_id = service_account_info["project_id"]
 vertexai.init(project=project_id, location="us-central1")
 
+parameters = {
+    "max_output_tokens": 1024,
+    "temperature": 0.5,
+    "top_p": 0.8,
+    "top_k": 40
+}
+model = TextGenerationModel.from_pretrained("text-bison@001")
+
+##################### User Interface #####################
