@@ -66,7 +66,7 @@ from langchain.chat_models import ChatVertexAI
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationSummaryBufferMemory
 
-##################### User Interface #####################
+##################### LLM #####################
 
 llm=ChatVertexAI()
 memory=ConversationSummaryBufferMemory(
@@ -79,9 +79,35 @@ conversation=ConversationChain(
     verbose=True
 )
 
-res=conversation.predict(input="Hello, I'm Jack!")
-st.write(res)
+def get_prompt(position):
+    return f'''
+        You are a panelist for a mock interview session. 
+        Your task is to conduct an interview with a candidate for a specific position.
+        The position you will be interviewing the candidate for is {position}.
+        During the interview, you should ask a combination of general questions to assess the candidate's overall suitability and role-specific questions to evaluate their qualifications for the position. 
+        After each response, provide constructive feedback on the candidate's answers, highlighting strengths and areas for improvement.
+        Focus on maintaining a professional and objective approach throughout the interview process.
+        **You must only reply as the interviewer. DO NOT WRITE ALL THE CONVERSATION AT ONCE**
+        Start the interview with a greeting and getting to know about the candidate. Do not mention name in greetings, make it generalized one.
+        **I want you to only do the interview with me. Ask me the questions and wait for my answers. Do not write explanations. Ask me the questions one by one like an interviewer does and wait for my answers. **
+        Conduct the mock interview and provide detailed feedback including a prediction on possibility of crcking the job interview based on the candidate's responses.
+    '''
 
-mem=memory.load_memory_variables({})
-st.divider()
-st.write(mem)
+# res=conversation.predict(input="Hello, I'm Jack!")
+# st.write(res)
+
+# mem=memory.load_memory_variables({})
+# st.divider()
+# st.write(mem)
+
+##################### UI #####################
+
+with st.sidebar:
+    position=st.text_input("What position do you wish to be interviewed?")
+    if position:
+        prompt=get_prompt(position)
+    
+if position and prompt:
+    with st.spinner("Get ready for the interview..."):
+        res=conversation.predict(input=prompt)
+        st.write(res)
