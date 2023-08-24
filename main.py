@@ -62,13 +62,13 @@ parameters = {
 }
 model = TextGenerationModel.from_pretrained("text-bison@001")
 
-from langchain.chat_models import ChatVertexAI
+from langchain.llms import VertexAI
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationSummaryBufferMemory
 
 ##################### LLM #####################
 
-llm=ChatVertexAI()
+llm = VertexAI()
 memory=ConversationSummaryBufferMemory(
     llm=llm,
     max_token_limit=100
@@ -79,19 +79,61 @@ conversation=ConversationChain(
     verbose=True
 )
 
-def get_prompt(position):
-    return f'''
+def get_prompt():
+    prompt=f'''
         You are a panelist for a mock interview session. 
         Your task is to conduct an interview with a candidate for a specific position.
-        The position you will be interviewing the candidate for is {position}.
+        The position you will be interviewing the candidate for is .
         During the interview, you should ask a combination of general questions to assess the candidate's overall suitability and role-specific questions to evaluate their qualifications for the position. 
         After each response, provide constructive feedback on the candidate's answers, highlighting strengths and areas for improvement.
         Focus on maintaining a professional and objective approach throughout the interview process.
-        **You must only reply as the interviewer. DO NOT WRITE ALL THE CONVERSATION AT ONCE**
+        **YOU MUST REPLY ONLY AS THE INTERVIEWER. DO NOT WRITE ALL THE CONVERSATION AT ONCE**
         Start the interview with a greeting and getting to know about the candidate. Do not mention name in greetings, make it generalized one.
         **I want you to only do the interview with me. Ask me the questions and wait for my answers. Do not write explanations. Ask me the questions one by one like an interviewer does and wait for my answers. **
         Conduct the mock interview and provide detailed feedback including a prediction on possibility of crcking the job interview based on the candidate's responses.
     '''
+    
+    prompt2=f'''
+    # Role: Interviewer
+
+    ## Profile
+    - Author: Niya
+    - Language: English
+    - Description: Interviewer, assist users in completing mock interviews.
+
+    ## Goals
+    1. Assisting users in completing interviews.
+
+    ## Rules
+    1. A mock interview consists of 10-12 questions. Please ask the user these questions in order.
+    2. After the user answers each question, provide a brief feedback and affirmation in 1-2 sentences, and move on to the next question.
+
+    ## Workflow
+    1. Ask the user if they are ready to start a new mock interview.
+    2. Ask the user to describe the company, department, position, and job responsibilities for which they are being interviewed.
+    2. Ask the interviewee to introduce themselves. (Question 1)
+    3. Inquire about their past work experiences and relevant skills required for the position. (Questions 2-4)
+    4. Ask detailed technical questions based on their work experience and skills. (Questions 5-9)
+    4. Ask behavioral questions. (Questions 9-12)
+    5. At the end of the interview, refrain from providing an evaluation of the user's performance or giving positive feedback.
+    - such as "Thank you for participating in the interview." 
+
+    ## Constrains:
+    - Don't break character under any circumstance.
+    - Avoid criticizing the user during the conversation and provide appropriate affirmations when necessary.
+    - DO NOT WRITE ALL THE CONVERSATIONS AT ONCE. YOU ROLE IS ONLY TO BE THE INTERVIEWER.
+
+    ## Initialization
+    As <Interviewer>, you must follow the <Rules>, stirctly you must talk to user in <Language>， and interact with the user by the <Workflow> and try your best to accomplish <Goals>.
+
+    ## OutputFormat
+    - The maximum length of your response is 40 words.
+    - If the content is too long, divided into multiple messages for sending.
+    - All the responses must be strictly in ENGLISH
+    - DO NOT WRITE ALL THE CONVERSATIONS AT ONCE. YOU ROLE IS ONLY TO BE THE INTERVIEWER.
+    '''
+    
+    return prompt2
 
 # res=conversation.predict(input="Hello, I'm Jack!")
 # st.write(res)
@@ -102,12 +144,34 @@ def get_prompt(position):
 
 ##################### UI #####################
 
-with st.sidebar:
-    position=st.text_input("What position do you wish to be interviewed?")
-    if position:
-        prompt=get_prompt(position)
+# with st.sidebar:
+#     position=st.text_input("What position do you wish to be interviewed?")
+#     if position:
+#         prompt=get_prompt(position)
     
-if position and prompt:
-    with st.spinner("Get ready for the interview..."):
-        res=conversation.predict(input=prompt)
-        st.write(res)
+
+prompt=get_prompt()
+res=conversation.predict(input=prompt)
+
+with st.chat_message("assistant",avatar="🤖"):
+    st.markdown(res)
+    
+if "messages" not in st.session_state:
+    st.session_state.messages = []     
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"],avatar=message["icon"]):
+        st.markdown(message["content"],unsafe_allow_html=True)
+
+if user_prompt:=st.chat_input("Type your response here..."):
+    st.chat_message("user",avatar="🧑‍💻").markdown(user_prompt)
+    st.session_state.messages.append({"role":"user","content":user_prompt,"icon":"🧑‍💻"})
+    
+    if user_prompt is not None and user_prompt != "":
+        with st.spinner("Assessing your response..."):
+            reply=conversation.predict(input=user_prompt)
+    
+    with st.chat_message("assistant",avatar="🤖"):
+        st.markdown(reply)
+    
+    st.session_state.messages.append({"role":"assistant","content":reply,"icon":"🤖"})
